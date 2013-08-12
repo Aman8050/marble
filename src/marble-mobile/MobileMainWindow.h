@@ -16,9 +16,13 @@
 #include <QMainWindow>
 #include <QVariantMap>
 
+#include <QSystemNetworkInfo>
+
 #include "MapThemeManager.h"
 
 class QAction;
+
+QTM_USE_NAMESPACE
 
 namespace Marble
 {
@@ -63,7 +67,7 @@ private Q_SLOTS:
 
     void fallBackToDefaultTheme();
 
-    void setWorkOffline( bool );
+    void setNetworkStatus( QSystemNetworkInfo::NetworkMode mode, QSystemNetworkInfo::NetworkStatus status );
     void setLegendShown( bool show );
 
     // Settings Menu
@@ -100,12 +104,13 @@ private:
     GoToDialog *m_gotoDialog;
     RoutingWidget *m_routingWidget;
 
-    QAction *m_workOfflineAct;
     QAction *m_showLegendAct;
 
     MapThemeManager m_mapThemeManager;
     QString m_lastFileOpenPath;
     QStringList m_commandlineFilePaths;
+
+    QtMobility::QSystemNetworkInfo m_networkInfo;
 };
 
 } // namespace Marble
