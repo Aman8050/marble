@@ -61,6 +61,8 @@
 #include <X11/Xatom.h>
 #endif // Q_WS_MAEMO_5
 
+QTM_USE_NAMESPACE
+
 namespace {
 
 const QString defaultMapThemeId = "earth/openstreetmap/openstreetmap.dgml";
@@ -82,7 +84,6 @@ MainWindow::MainWindow( const QString &marbleDataPath, const QVariantMap &cmdLin
         m_trackingWindow( 0 ),
         m_gotoDialog( 0 ),
         m_routingWidget( 0 ),
-        m_workOfflineAct( 0 ),
         m_kineticScrollingAction( 0 ),
         m_showLegendAct( 0 )
 {
@@ -114,12 +115,6 @@ MainWindow::MainWindow( const QString &marbleDataPath, const QVariantMap &cmdLin
     setWindowTitle( tr( "Marble - Virtual Globe" ) );
     setWindowIcon( QIcon( ":/icons/marble.png" ) );
     setCentralWidget( splitter );
-
-    m_workOfflineAct = menuBar()->addAction( tr( "Work Off&line" ) );
-    m_workOfflineAct->setIcon( QIcon( ":/icons/user-offline.png" ) );
-    m_workOfflineAct->setCheckable( true );
-    m_workOfflineAct->setChecked( m_marbleWidget->model()->workOffline() );
-    connect( m_workOfflineAct, SIGNAL(triggered(bool)), this, SLOT(setWorkOffline(bool)) );
 
     m_kineticScrollingAction = menuBar()->addAction( tr( "&Inertial Globe Rotation" ) );
     m_kineticScrollingAction->setCheckable( true );
@@ -181,6 +176,10 @@ MainWindow::MainWindow( const QString &marbleDataPath, const QVariantMap &cmdLin
 #endif // Q_WS_MAEMO_5
 
     connect( &m_mapThemeManager, SIGNAL(themesChanged()), this, SLOT(fallBackToDefaultTheme()) );
+
+    connect( &m_networkInfo, SIGNAL(networkStatusChanged(QSystemNetworkInfo::NetworkMode,QSystemNetworkInfo::NetworkStatus)),
+             this, SLOT(setNetworkStatus(QSystemNetworkInfo::NetworkMode,QSystemNetworkInfo::NetworkStatus)) );
+    setNetworkStatus( m_networkInfo.currentMode(), m_networkInfo.networkStatus( m_networkInfo.currentMode() ) );
 
     setUpdatesEnabled( true );
 
@@ -252,14 +251,28 @@ MainWindow::Orientation MainWindow::orientation() const
 }
 #endif // Q_WS_MAEMO_5
 
-void MainWindow::setWorkOffline( bool offline )
+void MainWindow::setNetworkStatus( QSystemNetworkInfo::NetworkMode mode, QSystemNetworkInfo::NetworkStatus status )
 {
+    Q_UNUSED( mode )
+
+    bool offline = true;
+
+    switch ( status ) {
+    case QtMobility::QSystemNetworkInfo::Connected:
+    case QtMobility::QSystemNetworkInfo::HomeNetwork:
+        offline = false;
+        break;
+    default:
+        offline = true;
+        break;
+    }
+
+    mDebug() << "Setting network state to" << ( offline ? "offline" : "online" );
+
     m_marbleWidget->model()->setWorkOffline( offline );
     if ( !offline ) {
         m_marbleWidget->clearVolatileTileCache();
     }
-
-    m_workOfflineAct->setChecked( offline );
 }
 
 void MainWindow::setKineticScrollingEnabled( bool enabled )
@@ -317,7 +330,6 @@ void MainWindow::readSettings(const QVariantMap& overrideSettings)
         setOrientation( orientation );
 #endif // Q_WS_MAEMO_5
         show();
-        setWorkOffline( settings.value( "workOffline", false ).toBool() );
         setLegendShown( settings.value( "showLegend", false ).toBool() );
         m_marbleWidget->setShowAtmosphere( settings.value( "showAtmosphere", true ).toBool() );
         m_lastFileOpenPath = settings.value( "lastFileOpenDir", QDir::homePath() ).toString();
