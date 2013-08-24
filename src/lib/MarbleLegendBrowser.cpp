@@ -181,6 +181,8 @@ void MarbleLegendBrowser::openLinkExternally( const QUrl &url )
 
 bool MarbleLegendBrowser::event( QEvent * event )
 {
+    qDebug() << Q_FUNC_INFO << event->type();
+
     // "Delayed initialization": legend gets created only 
     if ( event->type() == QEvent::Show ) {
         if ( !d->m_isLegendLoaded ) {
@@ -188,7 +190,11 @@ bool MarbleLegendBrowser::event( QEvent * event )
         }
     }
 
-    return MarbleWebView::event( event );
+    const bool result = MarbleWebView::event( event );
+
+    qDebug() << Q_FUNC_INFO << event->type() << result;
+
+    return result;
 }
 
 QString MarbleLegendBrowser::readHtml( const QUrl & name )
