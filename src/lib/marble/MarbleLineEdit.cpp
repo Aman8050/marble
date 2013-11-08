@@ -123,9 +123,7 @@ void MarbleLineEdit::setDecorator(const QPixmap &decorator)
     QString const postfixDirection  = layoutDirection() == Qt::LeftToRight ? "right" : "left";
     QString styleSheet = QString( ":enabled { padding-%1: %2; %3}").arg( postfixDirection ).arg( padding ).arg( decoratorStyleSheet );
 
-    if ( !MarbleGlobal::getInstance()->profiles() & MarbleGlobal::SmallScreen ) {
-        setStyleSheet( styleSheet );
-    }
+    setStyleSheet( styleSheet );
 }
 
 void MarbleLineEdit::setBusy(bool busy)
