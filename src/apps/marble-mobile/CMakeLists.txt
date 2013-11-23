@@ -19,8 +19,17 @@ marble_set_package_properties( QtMobility PROPERTIES TYPE OPTIONAL PURPOSE "Requ
 set( marblemobile_SRCS
   main.cpp
   MobileMainWindow.cpp
+  MobileGhnsDetailsWidget.cpp
+  MobileGhnsDownloadWidget.cpp
   StackableWindow.cpp
 )
+
+set( marblemobile_UI
+  MobileGhnsDetailsWidget.ui
+  MobileGhnsDownloadWidget.ui
+)
+
+qt_wrap_ui(marblemobile_SRCS ${marblemobile_UI})
 
 add_definitions(-DMARBLE_MOBILE_VERSION_STRING="1.6.20")
 IF(QTMOBILITY_SYSTEMINFO_INCLUDE_DIR)
