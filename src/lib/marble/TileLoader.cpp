@@ -307,7 +307,7 @@ QString TileLoader::tileFileName( const GeoSceneTiled *textureLayer, TileId cons
 void TileLoader::triggerDownload( TileId const &id, DownloadUsage const usage )
 {
     QUrl const sourceUrl = m_layer->downloadUrl( id );
-    QString const destFileName = m_layer->relativeTileFileName( id );
+    QString const destFileName = tileFileName( m_layer, id );
     QString const idStr = QString( "%1:%2:%3:%4" ).arg( m_layer->sourceDir() ).arg( id.zoomLevel() ).arg( id.x() ).arg( id.y() );
     emit downloadTile( sourceUrl, destFileName, idStr, usage );
 }
