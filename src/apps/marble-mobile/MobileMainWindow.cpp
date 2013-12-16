@@ -14,6 +14,7 @@
 
 #include "MobileMainWindow.h"
 
+#include "MobileGhnsDownloadWidget.h"
 #include "StackableWindow.h"
 
 // Marble
@@ -31,6 +32,7 @@
 #include "MarbleModel.h"
 #include "MarbleWidget.h"
 #include "MarbleWidgetInputHandler.h"
+#include "NewstuffModel.h"
 #include "Planet.h"
 #include "PluginManager.h"
 #include "PositionTracking.h"
@@ -115,6 +117,14 @@ MainWindow::MainWindow( const QString &marbleDataPath, const QVariantMap &cmdLin
     setWindowTitle( tr( "Marble - Virtual Globe" ) );
     setWindowIcon( QIcon( ":/icons/marble.png" ) );
     setCentralWidget( splitter );
+
+    QAction *const downloadMapThemesAct = menuBar()->addAction( tr( "&Download Maps..." ) );
+    downloadMapThemesAct->setIcon( QIcon( ":/icons/get-hot-new-stuff.png" ) );
+    connect( downloadMapThemesAct, SIGNAL(triggered()), this, SLOT(showMapThemeDownloadDialog()) );
+
+    QAction *const downloadSpeakersAct = menuBar()->addAction( tr( "&Download Speakers..." ) );
+    downloadSpeakersAct->setIcon( QIcon( ":/icons/get-hot-new-stuff.png" ) );
+    connect( downloadSpeakersAct, SIGNAL(triggered()), this, SLOT(showSpeakersDownloadDialog()) );
 
     m_kineticScrollingAction = menuBar()->addAction( tr( "&Inertial Globe Rotation" ) );
     m_kineticScrollingAction->setCheckable( true );
@@ -221,6 +231,50 @@ void MainWindow::showBookmarkManagerDialog()
 #endif // Q_WS_MAEMO_5
     dialog->exec();
     delete dialog;
+}
+
+void MainWindow::showMapThemeDownloadDialog()
+{
+    QPointer<MobileGhnsDownloadWidget> dialog = new MobileGhnsDownloadWidget( m_marbleWidget );
+
+    NewstuffModel *model = new NewstuffModel( dialog );
+    model->setTargetDirectory( MarbleDirs::localPath() + "/maps" );
+    model->setProvider( "http://edu.kde.org/marble/newstuff/maps-4.5.xml" );
+    model->setRegistryFile( MarbleDirs::localPath() + "/newstuff/marble-map-themes.knsregistry", Marble::NewstuffModel::NameTag );
+
+    dialog->setModel( model );
+
+#ifdef Q_WS_MAEMO_5
+    dialog->setAttribute( Qt::WA_Maemo5StackedWindow );
+    dialog->setWindowFlags( Qt::Window );
+    dialog->setAttribute( Qt::WA_DeleteOnClose, true );
+    dialog->show();
+#else // Q_WS_MAEMO_5
+    dialog->exec();
+    delete dialog;
+#endif // Q_WS_MAEMO_5
+}
+
+void MainWindow::showSpeakersDownloadDialog()
+{
+    QPointer<MobileGhnsDownloadWidget> dialog = new MobileGhnsDownloadWidget( m_marbleWidget );
+
+    NewstuffModel *model = new NewstuffModel( dialog );
+    model->setTargetDirectory( MarbleDirs::localPath() + "/audio/speakers" );
+    model->setProvider( "http://edu.kde.org/marble/newstuff/speakers.xml" );
+    model->setRegistryFile( MarbleDirs::localPath() + "/newstuff/marble-speakers.knsregistry", Marble::NewstuffModel::NameTag );
+
+    dialog->setModel( model );
+
+#ifdef Q_WS_MAEMO_5
+    dialog->setAttribute( Qt::WA_Maemo5StackedWindow );
+    dialog->setWindowFlags( Qt::Window );
+    dialog->setAttribute( Qt::WA_DeleteOnClose, true );
+    dialog->show();
+#else // Q_WS_MAEMO_5
+    dialog->exec();
+    delete dialog;
+#endif // Q_WS_MAEMO_5
 }
 
 #ifdef Q_WS_MAEMO_5

@@ -83,6 +83,8 @@ private Q_SLOTS:
     void downloadRegion();
 
     void showBookmarkManagerDialog();
+    void showMapThemeDownloadDialog();
+    void showSpeakersDownloadDialog();
     void showAboutMarbleDialog();
     void showDownloadRegionDialog();
     void showMapViewDialog();
