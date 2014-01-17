@@ -222,20 +222,7 @@ FILE (GLOB STAR_FILES stars/*.dat)
 install (FILES ${STAR_FILES} stars/deepsky.png stars/names.csv
 DESTINATION ${MARBLE_DATA_INSTALL_PATH}/stars)
 
-install (FILES
-placemarks/elevplacemarks.cache
-placemarks/otherplacemarks.cache
-placemarks/baseplacemarks.cache
-placemarks/moonlandingsites.cache
-placemarks/boundaryplacemarks.cache
-placemarks/moonterrain.cache
-DESTINATION ${MARBLE_DATA_INSTALL_PATH}/placemarks)
-
-if(MOBILE)
-    install (FILES placemarks/cityplacemarks_large_population.cache DESTINATION ${MARBLE_DATA_INSTALL_PATH}/placemarks RENAME placemarks/cityplacemarks.cache)
-else(MOBILE)
-    install (FILES placemarks/cityplacemarks.cache DESTINATION ${MARBLE_DATA_INSTALL_PATH}/placemarks)
-endif(MOBILE)
+add_subdirectory(placemarks)
 
 if(NOT APPLE AND NOT WIN32)
   install (FILES icons/hi128-app-marble.png DESTINATION ${ICON_INSTALL_DIR}/hicolor/128x128/apps/ RENAME marble.png)
