@@ -289,6 +289,16 @@ void GeoDataContainer::remove( int index )
     p()->m_vector.remove( index );
 }
 
+void GeoDataContainer::reverse()
+{
+    detach();
+    const int total = p()->m_vector.size();
+    const int upper = total / 2;
+    for ( int i = 0; i < upper; ++i ) {
+        qSwap( p()->m_vector[i], p()->m_vector[total-i-1] );
+    }
+}
+
 int GeoDataContainer::size() const
 {
     return p()->m_vector.size();

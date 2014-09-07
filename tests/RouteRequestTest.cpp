@@ -11,6 +11,7 @@
 #include <QTest>
 
 #include "routing/RouteRequest.h"
+#include "GeoDataFolder.h"
 #include "GeoDataPlacemark.h"
 
 namespace Marble
@@ -27,7 +28,8 @@ class RouteRequestTest : public QObject
 
 void RouteRequestTest::defaultConstructor()
 {
-    const RouteRequest request;
+    GeoDataFolder folder;
+    const RouteRequest request( &folder );
 
     QCOMPARE( request.size(), 0 );
     QCOMPARE( request.source(), GeoDataCoordinates() );
@@ -38,13 +40,15 @@ void RouteRequestTest::defaultConstructor()
 void RouteRequestTest::reverse()
 {
     {
-        RouteRequest request;
+        GeoDataFolder folder;
+        RouteRequest request( &folder );
         request.reverse(); // should not crash
         QCOMPARE( request.size(), 0 );
     }
 
     {
-        RouteRequest request;
+        GeoDataFolder folder;
+        RouteRequest request( &folder );
         request.append( GeoDataCoordinates(), "A" );
         request.reverse();
         QCOMPARE( request.size(), 1 );
@@ -52,7 +56,8 @@ void RouteRequestTest::reverse()
     }
 
     {
-        RouteRequest request;
+        GeoDataFolder folder;
+        RouteRequest request( &folder );
         request.append( GeoDataCoordinates(), "A" );
         request.append( GeoDataCoordinates(), "B" );
         request.reverse();
@@ -62,7 +67,8 @@ void RouteRequestTest::reverse()
     }
 
     {
-        RouteRequest request;
+        GeoDataFolder folder;
+        RouteRequest request( &folder );
         request.append( GeoDataCoordinates(), "A" );
         request.append( GeoDataCoordinates(), "B" );
         request.append( GeoDataCoordinates(), "C" );

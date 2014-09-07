@@ -116,6 +116,8 @@ class GEODATA_EXPORT GeoDataContainer : public GeoDataFeature
 
     void remove( int index );
 
+    void reverse();
+
     /**
     * @brief size of the container
     */
