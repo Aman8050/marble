@@ -120,6 +120,7 @@ class MarbleModelPrivate
 
     ~MarbleModelPrivate()
     {
+        delete m_routingManager;
         delete m_mapTheme;
     }
 

@@ -45,7 +45,9 @@ class RoutingManagerPrivate
 public:
     RoutingManager* q;
 
-    GeoDataFolder m_requestFolder;
+    GeoDataDocument m_document;
+
+    GeoDataFolder *const m_requestFolder;
 
     RouteRequest m_routeRequest;
 
@@ -106,8 +108,9 @@ public:
 
 RoutingManagerPrivate::RoutingManagerPrivate( MarbleModel *model, RoutingManager* manager, QObject *parent ) :
         q( manager ),
-        m_requestFolder(),
-        m_routeRequest( &m_requestFolder, manager ),
+        m_document(),
+        m_requestFolder( new GeoDataFolder ),
+        m_routeRequest( m_requestFolder, manager ),
         m_routingModel( &m_routeRequest, model, manager ),
         m_profilesModel( model->pluginManager() ),
         m_state( RoutingManager::Retrieved ),
@@ -124,7 +127,10 @@ RoutingManagerPrivate::RoutingManagerPrivate( MarbleModel *model, RoutingManager
         m_routeColorHighlighted( Oxygen::skyBlue1 ),
         m_routeColorAlternative( Oxygen::aluminumGray4 )
 {
-    m_requestFolder.setName( "Route Request" );
+    m_requestFolder->setName( "Route Request" );
+
+    m_document.setName( "Routing" );
+    m_document.append( m_requestFolder );
 
     m_routeColorStandard.setAlpha( 200 );
     m_routeColorHighlighted.setAlpha( 200 );
@@ -164,7 +170,7 @@ void RoutingManagerPrivate::saveRoute(const QString &filename)
 
     GeoDataDocument container;
     container.setName( "Route" );
-    container.append( new GeoDataFolder( m_requestFolder ) );
+    container.append( new GeoDataFolder( *m_requestFolder ) );
 
     GeoDataDocument *route = m_alternativeRoutesModel.currentRoute();
     if ( route ) {
@@ -199,6 +205,7 @@ void RoutingManagerPrivate::loadRoute(const QString &filename)
     if ( container && container->size() > 0 ) {
         GeoDataFolder* viaPoints = dynamic_cast<GeoDataFolder*>( &container->first() );
         if ( viaPoints ) {
+            const int pos = m_treeModel->removeFeature( m_requestFolder );
             loaded = true;
             QVector<GeoDataPlacemark*> placemarks = viaPoints->placemarkList();
             for( int i=0; i<placemarks.size(); ++i ) {
@@ -214,6 +221,7 @@ void RoutingManagerPrivate::loadRoute(const QString &filename)
             for ( int i = m_routeRequest.size(); i > viaPoints_needed; --i ) {
                 m_routeRequest.remove( viaPoints_needed );
             }
+            m_treeModel->addFeature( &m_document, m_requestFolder, pos );
         } else {
             mDebug() << "Expected a GeoDataDocument with at least one child, didn't get one though";
         }
@@ -245,6 +253,7 @@ void RoutingManagerPrivate::loadRoute(const QString &filename)
 RoutingManager::RoutingManager( MarbleModel *marbleModel, QObject *parent ) : QObject( parent ),
         d( new RoutingManagerPrivate( marbleModel, this, this ) )
 {
+    d->m_treeModel->addDocument( &d->m_document );
     connect( &d->m_runnerManager, SIGNAL(routeRetrieved(GeoDataDocument*)),
              this, SLOT(addRoute(GeoDataDocument*)) );
     connect( &d->m_runnerManager, SIGNAL(routingFinished()),
@@ -257,6 +266,7 @@ RoutingManager::RoutingManager( MarbleModel *marbleModel, QObject *parent ) : QO
 
 RoutingManager::~RoutingManager()
 {
+    d->m_treeModel->removeDocument( &d->m_document );
     delete d;
 }
 
