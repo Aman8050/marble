@@ -19,6 +19,7 @@
 
 #include <QMap>
 #include <QPainter>
+#include <QDebug>
 
 namespace Marble
 {
@@ -258,6 +259,7 @@ void RouteRequest::addVia( const GeoDataCoordinates &position )
 
 void RouteRequest::setPosition( int index, const GeoDataCoordinates &position, const QString &name )
 {
+    qDebug() << Q_FUNC_INFO << position.toString() << name;
     if ( index >= 0 && index < d->m_requestContainer->size() ) {
         GeoDataPlacemark *placemark = dynamic_cast<GeoDataPlacemark *>( d->m_requestContainer->child( index ) );
         placemark->setName( name );
