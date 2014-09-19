@@ -22,6 +22,7 @@ namespace Marble
 
 class GeoDataContainer;
 class GeoDataPlacemark;
+class GeoDataTreeModel;
 class RouteRequestPrivate;
 
 /**
@@ -36,7 +37,7 @@ class MARBLE_EXPORT RouteRequest: public QObject
 public:
 
     /** Constructor */
-    explicit RouteRequest( GeoDataContainer *requestContainer, QObject *parent = 0 );
+    explicit RouteRequest( GeoDataTreeModel *treeModel, GeoDataContainer *requestContainer, QObject *parent = 0 );
 
     /** Destructor */
     ~RouteRequest();

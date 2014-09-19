@@ -15,6 +15,7 @@
 #include "GeoDataExtendedData.h"
 #include "GeoDataLineString.h"
 #include "GeoDataPlacemark.h"
+#include "GeoDataTreeModel.h"
 #include "MarbleDirs.h"
 
 #include <QMap>
@@ -38,7 +39,9 @@ struct PixmapElement
 class RouteRequestPrivate
 {
 public:
-    RouteRequestPrivate( GeoDataContainer *requestFolder );
+    RouteRequestPrivate( GeoDataTreeModel *treeModel, GeoDataContainer *requestFolder );
+
+    GeoDataTreeModel *const m_treeModel;
 
     GeoDataContainer *const m_requestContainer;
 
@@ -61,7 +64,8 @@ bool PixmapElement::operator <(const PixmapElement &other) const
     return index < other.index || size < other.size;
 }
 
-RouteRequestPrivate::RouteRequestPrivate( GeoDataContainer *requestContainer ) :
+RouteRequestPrivate::RouteRequestPrivate( GeoDataTreeModel *treeModel, GeoDataContainer *requestContainer ) :
+    m_treeModel( treeModel ),
     m_requestContainer( requestContainer )
 {
 }
@@ -121,9 +125,9 @@ int RouteRequestPrivate::viaIndex( const GeoDataCoordinates &position ) const
     return result;
 }
 
-RouteRequest::RouteRequest( GeoDataContainer *requestContainer, QObject *parent ) :
+RouteRequest::RouteRequest( GeoDataTreeModel *treeModel, GeoDataContainer *requestContainer, QObject *parent ) :
     QObject( parent ),
-    d( new RouteRequestPrivate( requestContainer ) )
+    d( new RouteRequestPrivate( treeModel, requestContainer ) )
 {
     // nothing to do
 }
@@ -214,6 +218,7 @@ void RouteRequest::clear()
     for ( int i=d->m_requestContainer->size()-1; i>=0; --i ) {
         remove( i );
     }
+    Q_ASSERT( dynamic_cast<GeoDataContainer *>( d->m_requestContainer->parent() ) != 0 );
 }
 
 void RouteRequest::insert( int index, const GeoDataCoordinates &coordinates, const QString &name )
@@ -221,7 +226,7 @@ void RouteRequest::insert( int index, const GeoDataCoordinates &coordinates, con
     GeoDataPlacemark *placemark = new GeoDataPlacemark;
     placemark->setCoordinate( coordinates );
     placemark->setName( name );
-    d->m_requestContainer->insert( index, placemark );
+    d->m_treeModel->addFeature( d->m_requestContainer, placemark, index );
     emit positionAdded( index );
 }
 
@@ -236,14 +241,14 @@ void RouteRequest::append( const GeoDataCoordinates &coordinates, const QString 
 void RouteRequest::append( const GeoDataPlacemark &otherPlacemark )
 {
     GeoDataPlacemark *placemark = new GeoDataPlacemark( otherPlacemark );
-    d->m_requestContainer->append( placemark );
+    d->m_treeModel->addFeature( d->m_requestContainer, placemark );
     emit positionAdded( d->m_requestContainer->size()-1 );
 }
 
 void RouteRequest::remove( int index )
 {
-    if ( index >= 0 && index < d->m_requestContainer->size() ) {
-        d->m_requestContainer->remove( index );
+    const bool removed = d->m_treeModel->removeFeature( d->m_requestContainer, index );
+    if ( removed ) {
         emit positionRemoved( index );
     }
 }
@@ -253,7 +258,7 @@ void RouteRequest::addVia( const GeoDataCoordinates &position )
     int index = d->viaIndex( position );
     GeoDataPlacemark *placemark = new GeoDataPlacemark;
     placemark->setCoordinate( position );
-    d->m_requestContainer->insert( index, placemark );
+    d->m_treeModel->addFeature( d->m_requestContainer, placemark, index );
     emit positionAdded( index );
 }
 
@@ -268,13 +273,16 @@ void RouteRequest::setPosition( int index, const GeoDataCoordinates &position, c
             setVisited( index, false );
             emit positionChanged( index, position );
         }
+        d->m_treeModel->updateFeature( placemark );
     }
 }
 
 void RouteRequest::setName( int index, const QString &name )
 {
     if ( index >= 0 && index < d->m_requestContainer->size() ) {
-        d->m_requestContainer->child( index )->setName( name );
+        GeoDataFeature *const feature = d->m_requestContainer->child( index );
+        feature->setName( name );
+        d->m_treeModel->updateFeature( feature );
     }
 }
 
@@ -299,6 +307,7 @@ void RouteRequest::setVisited( int index, bool visited )
                  ++iter;
              }
          }
+        d->m_treeModel->updateFeature( d->m_requestContainer->child( index ) );
         emit positionChanged( index, static_cast<const GeoDataPlacemark *>( d->m_requestContainer->child( index ) )->coordinate() );
     }
 }
@@ -316,10 +325,13 @@ bool RouteRequest::visited( int index ) const
 
 void RouteRequest::reverse()
 {
+    d->m_treeModel->removeFeature( d->m_requestContainer );
     d->m_requestContainer->reverse();
     for ( int i = 0; i < d->m_requestContainer->size(); ++i ) {
         setVisited( i, false );
     }
+    Q_ASSERT( dynamic_cast<GeoDataContainer *>( d->m_requestContainer->parent() ) != 0 );
+    d->m_treeModel->addFeature( static_cast<GeoDataContainer *>( d->m_requestContainer->parent() ), d->m_requestContainer );
 }
 
 void RouteRequest::setRoutingProfile( const RoutingProfile &profile )

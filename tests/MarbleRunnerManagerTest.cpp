@@ -19,6 +19,7 @@
 #include "SearchRunnerManager.h"
 #include "GeoDataFolder.h"
 #include "GeoDataPlacemark.h"
+#include "GeoDataTreeModel.h"
 #include "routing/RouteRequest.h"
 #include "TestUtils.h"
 
@@ -71,14 +72,16 @@ public:
     QString m_name;
     GeoDataCoordinates m_coords;
     GeoDataCoordinates m_coords2;
+    GeoDataTreeModel m_treeModel;
     GeoDataFolder m_requestFolder;
     RouteRequest m_request;
     QTime t;
 };
 
 MarbleRunnerManagerTest::MarbleRunnerManagerTest() :
+    m_treeModel(),
     m_requestFolder(),
-    m_request( &m_requestFolder )
+    m_request( &m_treeModel, &m_requestFolder )
 {
 }
 
@@ -274,8 +277,9 @@ void MarbleRunnerManagerTest::testAsyncRouting()
              &loop, SLOT(quit()), Qt::QueuedConnection );
 
     QFETCH( QList<GeoDataCoordinates>, coordinatesList );
+    GeoDataTreeModel treeModel;
     GeoDataFolder requestFolder;
-    RouteRequest request( &requestFolder );
+    RouteRequest request( &treeModel, &requestFolder );
     foreach( const GeoDataCoordinates &coordinates, coordinatesList ) {
         request.append( coordinates );
     }
