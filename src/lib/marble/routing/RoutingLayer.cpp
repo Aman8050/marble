@@ -278,8 +278,6 @@ void RoutingLayerPrivate::renderAlternativeRoutes( GeoPainter *painter )
 
 void RoutingLayerPrivate::renderRoute( GeoPainter *painter )
 {
-    GeoDataLineString waypoints = m_routingModel->route().path();
-
     QPen standardRoutePen( m_marbleWidget->model()->routingManager()->routeColorStandard() );
     standardRoutePen.setWidth( 5 );
     if ( m_marbleWidget->model()->routingManager()->state() == RoutingManager::Downloading ) {
@@ -287,11 +285,14 @@ void RoutingLayerPrivate::renderRoute( GeoPainter *painter )
     }
     painter->setPen( standardRoutePen );
 
-    painter->drawPolyline( waypoints );
-    if ( m_viewportChanged && m_viewContext == Still ) {
-        int const offset = MarbleGlobal::getInstance()->profiles() & MarbleGlobal::SmallScreen ? 24 : 8;
-        if ( m_isInteractive ) {
-            m_routeRegion = painter->regionFromPolyline( waypoints, offset );
+    {
+        const GeoDataLineString waypoints = m_routingModel->route().path();
+        painter->drawPolyline( waypoints );
+        if ( m_viewportChanged && m_viewContext == Still ) {
+            int const offset = MarbleGlobal::getInstance()->profiles() & MarbleGlobal::SmallScreen ? 24 : 8;
+            if ( m_isInteractive ) {
+                m_routeRegion = painter->regionFromPolyline( waypoints, offset );
+            }
         }
     }
 
