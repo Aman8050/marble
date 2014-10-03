@@ -14,6 +14,8 @@
 
 #include "RoutingRunner.h"
 
+#include "routing/Route.h"
+
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
@@ -46,7 +48,7 @@ private:
 
     static int maneuverType( int mapQuestId );
 
-    GeoDataDocument* parse( const QByteArray &input ) const;
+    Route parse( const QByteArray &input ) const;
 
     QNetworkAccessManager m_networkAccessManager;
 

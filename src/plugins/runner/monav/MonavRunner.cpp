@@ -14,6 +14,7 @@
 
 #include "MarbleDebug.h"
 #include "MarbleDirs.h"
+#include "routing/Route.h"
 #include "routing/RouteRequest.h"
 #include "routing/instructions/InstructionTransformation.h"
 #include "GeoDataDocument.h"
@@ -43,7 +44,7 @@ public:
 
     int retrieveRoute( const RouteRequest *route, QVector<GeoDataPlacemark*> *instructions, GeoDataLineString* geometry ) const;
 
-    static GeoDataDocument* createDocument( GeoDataLineString *geometry, const QVector<GeoDataPlacemark*> &instructions, const QString &name, const GeoDataExtendedData &data );
+    static Route createDocument( GeoDataLineString *geometry, const QVector<GeoDataPlacemark*> &instructions, const QString &name, const GeoDataExtendedData &data );
 };
 
 MonavRunnerPrivate::MonavRunnerPrivate( const MonavPlugin* plugin ) :
@@ -199,10 +200,10 @@ int MonavRunnerPrivate::retrieveRoute( const Marble::RouteRequest* route, QVecto
     return 0;
 }
 
-GeoDataDocument* MonavRunnerPrivate::createDocument( Marble::GeoDataLineString* geometry, const QVector< Marble::GeoDataPlacemark* >& instructions, const QString& name, const Marble::GeoDataExtendedData& data )
+Route MonavRunnerPrivate::createDocument( Marble::GeoDataLineString* geometry, const QVector< Marble::GeoDataPlacemark* >& instructions, const QString& name, const Marble::GeoDataExtendedData& data )
 {
     if ( !geometry || geometry->isEmpty() ) {
-        return 0;
+        return Route();
     }
 
     GeoDataDocument* result = new GeoDataDocument;
@@ -242,7 +243,7 @@ void MonavRunner::retrieveRoute( const RouteRequest *route )
     qreal length = waypoints->length( EARTH_RADIUS );
     const QString name = nameString( "Monav", length, time );
     const GeoDataExtendedData data = routeData( length, time );
-    GeoDataDocument *result = d->createDocument( waypoints, instructions, name, data );
+    const Route result = d->createDocument( waypoints, instructions, name, data );
     emit routeCalculated( result );
 }
 

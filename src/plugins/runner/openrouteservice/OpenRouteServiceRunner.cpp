@@ -16,6 +16,7 @@
 #include "TinyWebBrowser.h"
 #include "GeoDataData.h"
 #include "GeoDataExtendedData.h"
+#include "routing/Maneuver.h"
 #include "routing/RouteRequest.h"
 
 #include <QString>
@@ -114,13 +115,13 @@ void OpenRouteServiceRunner::retrieveData( QNetworkReply *reply )
         QByteArray data = reply->readAll();
         reply->deleteLater();
         //mDebug() << "Download completed: " << data;
-        GeoDataDocument* document = parse( data );
+        const Route route = parse( data );
 
-        if ( !document ) {
+        if ( route.size() == 0 ) {
             mDebug() << "Failed to parse the downloaded route data" << data;
         }
 
-        emit routeCalculated( document );
+        emit routeCalculated( route );
     }
 }
 
@@ -195,22 +196,21 @@ QString OpenRouteServiceRunner::xmlFooter()
     return "</xls:XLS>\n";
 }
 
-GeoDataDocument* OpenRouteServiceRunner::parse( const QByteArray &content ) const
+Route OpenRouteServiceRunner::parse( const QByteArray &content ) const
 {
     QDomDocument xml;
     if ( !xml.setContent( content ) ) {
         mDebug() << "Cannot parse xml file with routing instructions.";
-        return 0;
+        return Route();
     }
 
     QDomElement root = xml.documentElement();
 
-    GeoDataDocument* result = new GeoDataDocument();
-    result->setName( "OpenRouteService" );
+    Route result;
 
     QDomNodeList errors = root.elementsByTagName( "xls:Error" );
     if ( errors.size() > 0 ) {
-        return 0;
+        return Route();
         // Returning early because fallback routing providers are used now
         // The code below can be used to parse OpenGis errors reported by ORS
         // and may be useful in the future
@@ -225,6 +225,7 @@ GeoDataDocument* OpenRouteServiceRunner::parse( const QByteArray &content ) cons
             QString errorMessage = node.attributes().namedItem( "message" ).nodeValue();
             QRegExp regexp = QRegExp( "^(.*) Please Check your Position: (-?[0-9]+.[0-9]+) (-?[0-9]+.[0-9]+) !" );
             if ( regexp.indexIn( errorMessage ) == 0 ) {
+#if 0
                 if ( regexp.capturedTexts().size() == 4 ) {
                     GeoDataPlacemark* placemark = new GeoDataPlacemark;
                     placemark->setName( regexp.capturedTexts().at( 1 ) );
@@ -234,6 +235,7 @@ GeoDataDocument* OpenRouteServiceRunner::parse( const QByteArray &content ) cons
                     placemark->setCoordinate( position );
                     result->append( placemark );
                 }
+#endif
             } else {
                 mDebug() << "Error message " << errorMessage << " not parsable.";
                 /** @todo: How to handle this now with plugins? */
@@ -246,6 +248,7 @@ GeoDataDocument* OpenRouteServiceRunner::parse( const QByteArray &content ) cons
         }
     }
 
+#if 0
     GeoDataPlacemark* routePlacemark = new GeoDataPlacemark;
     routePlacemark->setName( "Route" );
     QTime time;
@@ -308,6 +311,7 @@ GeoDataDocument* OpenRouteServiceRunner::parse( const QByteArray &content ) cons
     result->setName( name );
 
     result->append( routePlacemark );
+#endif
 
     QDomNodeList instructionList = root.elementsByTagName( "xls:RouteInstructionsList" );
     if ( instructionList.size() > 0 ) {
@@ -326,38 +330,34 @@ GeoDataDocument* OpenRouteServiceRunner::parse( const QByteArray &content ) cons
             if ( textNodes.size() > 0 && positions.size() > 0 ) {
                 QStringList content = positions.at( 0 ).toElement().text().split( ' ' );
                 if ( content.length() == 2 ) {
-                    GeoDataLineString *lineString = new GeoDataLineString;
+                    GeoDataLineString path;
 
                     for( int i = 0; i < positions.count(); ++i ) {
                          QStringList pointList = positions.at( i ).toElement().text().split( ' ' );
                          GeoDataCoordinates position;
                          position.setLongitude( pointList.at( 0 ).toDouble(), GeoDataCoordinates::Degree );
                          position.setLatitude( pointList.at( 1 ).toDouble(), GeoDataCoordinates::Degree );
-                         lineString->append( position );
+                         path.append( position );
                     }
-
-                    GeoDataPlacemark* instruction = new GeoDataPlacemark;
 
                     QString const text = textNodes.item( 0 ).toElement().text();
-                    GeoDataExtendedData extendedData;
-                    GeoDataData turnTypeData;
-                    turnTypeData.setName( "turnType" );
                     QString road;
                     RoutingInstruction::TurnType turnType = parseTurnType( text, &road );
-                    turnTypeData.setValue( turnType );
-                    extendedData.addValue( turnTypeData );
-                    if ( !road.isEmpty() ) {
-                        GeoDataData roadName;
-                        roadName.setName( "roadName" );
-                        roadName.setValue( road );
-                        extendedData.addValue( roadName );
-                    }
 
                     QString const instructionText = turnType == RoutingInstruction::Unknown ? text : RoutingInstruction::generateRoadInstruction( turnType, road );
-                    instruction->setName( instructionText );
-                    instruction->setExtendedData( extendedData );
-                    instruction->setGeometry( lineString );
-                    result->append( instruction );
+
+                    Maneuver maneuver;
+                    maneuver.setInstructionText( instructionText );
+                    maneuver.setDirection( Maneuver::Direction(turnType) );
+                    maneuver.setRoadName( road );
+                    maneuver.setPosition( path.isEmpty() ? GeoDataCoordinates() : path.first() );
+                    // TODO: maneuver.setWaypoint();
+
+                    RouteSegment routeSegment;
+                    routeSegment.setManeuver( maneuver );
+                    routeSegment.setPath( path );
+
+                    result.addRouteSegment( routeSegment );
                 }
             }
         }

@@ -25,10 +25,11 @@ class RoutingModel;
 class Route;
 class RouteRequest;
 class MarbleModel;
-class GeoDataDocument;
 class GeoDataFolder;
 class AlternativeRoutesModel;
+class Route;
 class RoutingProfilesModel;
+class RoutingRunnerPlugin;
 
 /**
   * Delegates data retrieval and model updates to the appropriate
@@ -199,7 +200,7 @@ Q_SIGNALS:
     void guidanceModeEnabledChanged( bool enabled );
 
 private:
-    Q_PRIVATE_SLOT( d, void addRoute( GeoDataDocument* route ) )
+    Q_PRIVATE_SLOT( d, void addRoute( const Route &route, const RoutingRunnerPlugin &factory ) )
 
     Q_PRIVATE_SLOT( d, void routingFinished() )
 

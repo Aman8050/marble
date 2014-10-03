@@ -14,6 +14,7 @@
 
 #include "RoutingRunner.h"
 #include "GeoDataCoordinates.h"
+#include "routing/Route.h"
 #include "routing/instructions/RoutingInstruction.h"
 
 #include <QString>
@@ -53,7 +54,7 @@ private:
 
     static RoutingInstruction::TurnType parseTurnType( const QString &instruction );
 
-    GeoDataDocument* parse( const QByteArray &input ) const;
+    Route parse( const QByteArray &input ) const;
 
     QNetworkAccessManager m_networkAccessManager;
 

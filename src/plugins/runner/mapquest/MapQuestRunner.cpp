@@ -12,9 +12,6 @@
 
 #include "MarbleDebug.h"
 #include "MarbleLocale.h"
-#include "GeoDataDocument.h"
-#include "GeoDataPlacemark.h"
-#include "GeoDataExtendedData.h"
 #include "TinyWebBrowser.h"
 #include "routing/Maneuver.h"
 #include "routing/RouteRequest.h"
@@ -153,13 +150,13 @@ void MapQuestRunner::retrieveData( QNetworkReply *reply )
         QByteArray data = reply->readAll();
         reply->deleteLater();
         //mDebug() << "Download completed: " << data;
-        GeoDataDocument* document = parse( data );
+        const Route route = parse( data );
 
-        if ( !document ) {
+        if ( route.size() == 0 ) {
             mDebug() << "Failed to parse the downloaded route data" << data;
         }
 
-        emit routeCalculated( document );
+        emit routeCalculated( route );
     }
 }
 
@@ -201,19 +198,19 @@ int MapQuestRunner::maneuverType( int mapQuestId )
     return Maneuver::Unknown;
 }
 
-GeoDataDocument* MapQuestRunner::parse( const QByteArray &content ) const
+Route MapQuestRunner::parse( const QByteArray &content ) const
 {
     QDomDocument xml;
     if ( !xml.setContent( content ) ) {
         mDebug() << "Cannot parse xml file with routing instructions.";
-        return 0;
+        return Route();
     }
 
     // mDebug() << xml.toString(2);
     QDomElement root = xml.documentElement();
 
-    GeoDataDocument* result = new GeoDataDocument();
-    result->setName( "MapQuest" );
+    Route result;
+    result.setName( "MapQuest" );
     GeoDataPlacemark* routePlacemark = new GeoDataPlacemark;
     routePlacemark->setName( "Route" );
 

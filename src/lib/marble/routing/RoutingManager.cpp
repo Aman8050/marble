@@ -95,7 +95,7 @@ public:
 
     void loadRoute( const QString &filename );
 
-    void addRoute( GeoDataDocument* route );
+    void addRoute( const Route &route, const RoutingRunnerPlugin &factory );
 
     void routingFinished();
 
@@ -106,6 +106,12 @@ public:
     static Route importDocument( const GeoDataDocument &document, const RouteRequest &request );
 
     static void importPlacemark( RouteSegment &outline, QVector<RouteSegment> &segments, const GeoDataPlacemark *placemark );
+
+    static const QString nameString( const QString &name, qreal length, const QTime &duration );
+
+    static const QString lengthString( qreal length );
+
+    static const QString durationString( const QTime &duration );
 };
 
 RoutingManagerPrivate::RoutingManagerPrivate( MarbleModel *model, RoutingManager* manager, QObject *parent ) :
@@ -269,8 +275,8 @@ void RoutingManagerPrivate::loadRoute(const QString &filename)
 RoutingManager::RoutingManager( MarbleModel *marbleModel, QObject *parent ) : QObject( parent ),
         d( new RoutingManagerPrivate( marbleModel, this, this ) )
 {
-    connect( &d->m_runnerManager, SIGNAL(routeRetrieved(GeoDataDocument*)),
-             this, SLOT(addRoute(GeoDataDocument*)) );
+    connect( &d->m_runnerManager, SIGNAL(routeRetrieved(Route,RoutingRunnerPlugin)),
+             this, SLOT(addRoute(Route,RoutingRunnerPlugin)) );
     connect( &d->m_runnerManager, SIGNAL(routingFinished()),
              this, SLOT(routingFinished()) );
     connect( &d->m_alternativeRoutesModel, SIGNAL(currentRouteChanged(const Route*)),
@@ -332,16 +338,16 @@ void RoutingManager::retrieveRoute()
     emit stateChanged( d->m_state );
 }
 
-void RoutingManagerPrivate::addRoute( GeoDataDocument* routeResult )
+void RoutingManagerPrivate::addRoute( const Route &route, const RoutingRunnerPlugin &factory )
 {
-    if ( routeResult ) {
-        const Route route = importDocument( *routeResult, m_routeRequest );
-        m_alternativeRoutesModel.addRoute( route, routeResult->name() );
+    if ( route.size() > 0 ) {
+        const QString name = nameString( factory.guiString(), route.path().length( EARTH_RADIUS ), QTime().addSecs( route.travelTime() ) );
+        m_alternativeRoutesModel.addRoute( route, name );
         emit q->routeRetrieved( route );
     }
 
     if ( !m_haveRoute ) {
-        m_haveRoute = routeResult != 0;
+        m_haveRoute = route.size() > 0;
     }
 }
 
@@ -458,6 +464,31 @@ void RoutingManagerPrivate::importPlacemark( RouteSegment &outline, QVector<Rout
             segments.push_back( segment );
         }
     }
+}
+
+const QString RoutingManagerPrivate::nameString(const QString &name, qreal length, const QTime &duration)
+{
+    const QString result = "%1; %2 (%3)";
+    return result.arg( lengthString( length ) ).arg( durationString( duration ) ).arg( name );
+}
+
+const QString RoutingManagerPrivate::lengthString(qreal length)
+{
+    const QString result = "%1 %2";
+    QString unit = QLatin1String( "m" );
+    if (length >= 1000) {
+        length /= 1000.0;
+        unit = "km";
+    }
+    return result.arg( length, 0, 'f', 1 ).arg( unit );
+}
+
+const QString RoutingManagerPrivate::durationString(const QTime &duration)
+{
+    const QString hoursString = duration.toString( "hh" );
+    const QString minutesString = duration.toString( "mm" );
+    const QString timeString = QObject::tr("%1:%2 h","journey duration").arg( hoursString ).arg( minutesString );
+    return timeString;
 }
 
 AlternativeRoutesModel* RoutingManager::alternativeRoutesModel()

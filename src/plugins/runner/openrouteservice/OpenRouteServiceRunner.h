@@ -13,6 +13,7 @@
 #define MARBLE_OSMOPENROUTESERVICERUNNER_H
 
 #include "RoutingRunner.h"
+#include "routing/Route.h"
 #include "routing/instructions/RoutingInstruction.h"
 
 #include <QString>
@@ -66,7 +67,7 @@ private:
     /** Builds the xml request footer. */
     static QString xmlFooter();
 
-    GeoDataDocument* parse( const QByteArray &input ) const;
+    Route parse( const QByteArray &input ) const;
 
     static RoutingInstruction::TurnType parseTurnType( const QString &text, QString* road );
 
