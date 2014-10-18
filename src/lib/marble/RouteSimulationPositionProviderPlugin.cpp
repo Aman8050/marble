@@ -14,6 +14,7 @@
 
 #include <QTimer>
 
+#include "MarbleClock.h"
 #include "MarbleMath.h"
 #include "MarbleModel.h"
 #include "routing/Route.h"
@@ -111,6 +112,9 @@ RouteSimulationPositionProviderPlugin::RouteSimulationPositionProviderPlugin( Ma
 
 RouteSimulationPositionProviderPlugin::~RouteSimulationPositionProviderPlugin()
 {
+    if ( !m_lineString.isEmpty() ) {
+        m_marbleModel->clock()->setUpdateInterval( m_oldUpdateInterval );
+    }
 }
 
 void RouteSimulationPositionProviderPlugin::initialize()
@@ -122,7 +126,10 @@ void RouteSimulationPositionProviderPlugin::initialize()
     m_status = m_lineString.isEmpty() ? PositionProviderStatusUnavailable : PositionProviderStatusAcquiring;
 
     if ( !m_lineString.isEmpty() ) {
-        QTimer::singleShot( 1000.0 / c_frequency, this, SLOT(update()) );
+        MarbleClock *const clock = m_marbleModel->clock();
+        m_oldUpdateInterval = clock->updateInterval();
+        clock->setUpdateInterval( 1 );
+        connect( clock, SIGNAL(timeChanged()), this, SLOT(update()) );
     }
 }
 
@@ -174,8 +181,6 @@ void RouteSimulationPositionProviderPlugin::update()
             emit statusChanged( PositionProviderStatusUnavailable );
         }
     }
-
-    QTimer::singleShot( 1000.0 / c_frequency, this, SLOT(update()) );
 }
 
 } // namespace Marble

@@ -63,6 +63,7 @@ private Q_SLOTS:
 
 private:
     MarbleModel *const m_marbleModel;
+    int m_oldUpdateInterval;
     int m_currentIndex;
     PositionProviderStatus m_status;
     GeoDataLineString m_lineString;
