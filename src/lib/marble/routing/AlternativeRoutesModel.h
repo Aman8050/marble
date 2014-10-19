@@ -11,9 +11,9 @@
 #ifndef MARBLE_ALTERNATIVEROUTESMODEL_H
 #define MARBLE_ALTERNATIVEROUTESMODEL_H
 
-#include "GeoDataLineString.h"
-
 #include <QAbstractListModel>
+
+#include "routing/Route.h"
 
 /**
   * A QAbstractItemModel that contains a list of routing instructions.
@@ -24,8 +24,8 @@
 namespace Marble
 {
 
+class Route;
 class RouteRequest;
-class GeoDataDocument;
 
 class MARBLE_EXPORT AlternativeRoutesModel : public QAbstractListModel
 {
@@ -54,7 +54,7 @@ public:
     /** Overload of QAbstractListModel */
     QVariant data ( const QModelIndex &index, int role = Qt::DisplayRole ) const;
 
-    GeoDataDocument* route( int index );
+    const Route *route( int index ) const;
 
     // Model data filling
 
@@ -64,32 +64,29 @@ public:
     /**
       * Old data in the model is discarded, the parsed content of the provided document
       * is used as the new model data and a model reset is done
-      * @param document The route to add
+      * @param route The route to add
       * @param policy In lazy mode (default), a short amount of time is waited for
       *   other addRoute() calls before adding the route to the model. Otherwise, the
       *   model is changed immediately.
       */
-    void addRoute( GeoDataDocument* document, WritePolicy policy = Lazy );
+    void addRoute( const Route &route, const QString &name, WritePolicy policy = Lazy );
 
     /** Remove all alternative routes from the model */
     void clear();
 
-    GeoDataDocument* currentRoute();
-
-    /** Returns the waypoints contained in the route as a linestring */
-    static const GeoDataLineString* waypoints( const GeoDataDocument* document );
+    const Route *currentRoute() const;
 
     /** Returns the distance between the given point and the given great circle path */
     static qreal distance( const GeoDataCoordinates &satellite, const GeoDataCoordinates &lineA, const GeoDataCoordinates &lineB );
 
     /** Returns the minimal distance of each waypoint of routeA to routeB */
-    static QVector<qreal> deviation( const GeoDataDocument* routeA, const GeoDataDocument* routeB );
+    static QVector<qreal> deviation( const Route &routeA, const Route &routeB );
 
 public Q_SLOTS:
     void setCurrentRoute( int index );
 
 Q_SIGNALS:
-    void currentRouteChanged( GeoDataDocument* newRoute );
+    void currentRouteChanged( const Route &newRoute );
     void currentRouteChanged( int index );
 
 private Q_SLOTS:

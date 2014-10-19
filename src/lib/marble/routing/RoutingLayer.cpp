@@ -234,13 +234,13 @@ void RoutingLayerPrivate::renderAlternativeRoutes( GeoPainter *painter )
     painter->setPen( alternativeRoutePen );
 
     for ( int i=0; i<m_alternativeRoutesModel->rowCount(); ++i ) {
-        GeoDataDocument* route = m_alternativeRoutesModel->route( i );
+        const Route *route = m_alternativeRoutesModel->route( i );
         if ( route && route != m_alternativeRoutesModel->currentRoute() ) {
-            const GeoDataLineString* points = AlternativeRoutesModel::waypoints( route );
-            if ( points ) {
-                painter->drawPolyline( *points );
+            const GeoDataLineString &points = route->waypoints();
+            if ( !points.isEmpty() ) {
+                painter->drawPolyline( points );
                 if ( m_viewportChanged && m_isInteractive && m_viewContext == Still ) {
-                    QRegion region = painter->regionFromPolyline( *points, 8 );
+                    QRegion region = painter->regionFromPolyline( points, 8 );
                     m_alternativeRouteRegions.push_back( RequestRegion( i, region ) );
                 }
             }

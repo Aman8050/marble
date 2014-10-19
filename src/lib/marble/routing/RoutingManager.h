@@ -22,6 +22,7 @@ namespace Marble
 
 class RoutingManagerPrivate;
 class RoutingModel;
+class Route;
 class RouteRequest;
 class MarbleModel;
 class GeoDataDocument;
@@ -193,7 +194,7 @@ Q_SIGNALS:
       */
     void stateChanged( RoutingManager::State newState );
 
-    void routeRetrieved( GeoDataDocument* route );
+    void routeRetrieved( const Route &route );
 
     void guidanceModeEnabledChanged( bool enabled );
 
@@ -202,7 +203,7 @@ private:
 
     Q_PRIVATE_SLOT( d, void routingFinished() )
 
-    Q_PRIVATE_SLOT( d, void setCurrentRoute( GeoDataDocument *route ) )
+    Q_PRIVATE_SLOT( d, void setCurrentRoute( const Route *route ) )
 
     Q_PRIVATE_SLOT( d, void recalculateRoute( bool deviated ) )
 
