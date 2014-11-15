@@ -26,6 +26,8 @@ namespace Marble
 
 class RouteRequest;
 class GeoDataDocument;
+class GeoDataFolder;
+class GeoDataTreeModel;
 
 class MARBLE_EXPORT AlternativeRoutesModel : public QAbstractListModel
 {
@@ -38,7 +40,7 @@ public:
     };
 
     /** Constructor */
-    explicit AlternativeRoutesModel( QObject *parent = 0 );
+    explicit AlternativeRoutesModel( GeoDataTreeModel *treeModel, GeoDataFolder *folder, QObject *parent = 0 );
 
     /** Destructor */
     ~AlternativeRoutesModel();

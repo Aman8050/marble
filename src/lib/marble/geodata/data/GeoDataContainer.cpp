@@ -304,6 +304,11 @@ int GeoDataContainer::size() const
     return p()->m_vector.size();
 }
 
+bool GeoDataContainer::isEmpty() const
+{
+    return p()->m_vector.isEmpty();
+}
+
 GeoDataFeature& GeoDataContainer::at( int pos )
 {
     detach();

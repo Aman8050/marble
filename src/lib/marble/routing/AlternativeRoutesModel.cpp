@@ -14,6 +14,7 @@
 #include "GeoDataFolder.h"
 #include "GeoDataExtendedData.h"
 #include "GeoDataPlacemark.h"
+#include "GeoDataTreeModel.h"
 #include "MarbleMath.h"
 
 #include <QTimer>
@@ -24,7 +25,7 @@ namespace Marble {
 class AlternativeRoutesModel::Private
 {
 public:
-    Private();
+    Private( GeoDataTreeModel *treeModel, GeoDataFolder *folder );
 
     /**
       * Returns true if there exists a route with high similarity to the given one
@@ -84,8 +85,8 @@ public:
 
     static QPolygonF polygon( const GeoDataLineString &lineString, qreal x, qreal y, qreal sx, qreal sy );
 
-    /** The currently shown alternative routes (model data) */
-    QVector<GeoDataDocument*> m_routes;
+    GeoDataTreeModel *const m_treeModel;
+    GeoDataFolder *const m_folder;
 
     /** Pending route data (waiting for other results to come in) */
     QVector<GeoDataDocument*> m_restrainedRoutes;
@@ -97,8 +98,10 @@ public:
 };
 
 
-AlternativeRoutesModel::Private::Private() :
-        m_currentIndex( -1 )
+AlternativeRoutesModel::Private::Private( GeoDataTreeModel *treeModel, GeoDataFolder *folder ) :
+    m_treeModel( treeModel ),
+    m_folder( folder ),
+    m_currentIndex( -1 )
 {
     // nothing to do
 }
@@ -128,8 +131,8 @@ QPolygonF AlternativeRoutesModel::Private::polygon( const GeoDataLineString &lin
 
 bool AlternativeRoutesModel::Private::filter( const GeoDataDocument* document ) const
 {
-    for ( int i=0; i<m_routes.size(); ++i ) {
-        qreal similarity = Private::similarity( document, m_routes.at( i ) );
+    for ( int i = 0; i < m_folder->size(); ++i ) {
+        qreal similarity = Private::similarity( document, static_cast<const GeoDataDocument *>( m_folder->child( i ) ) );
         if ( similarity > 0.8 ) {
             return true;
         }
@@ -293,9 +296,9 @@ const GeoDataLineString* AlternativeRoutesModel::Private::waypoints( const GeoDa
     return 0;
 }
 
-AlternativeRoutesModel::AlternativeRoutesModel( QObject *parent ) :
-        QAbstractListModel( parent ),
-        d( new Private() )
+AlternativeRoutesModel::AlternativeRoutesModel( GeoDataTreeModel *treeModel, GeoDataFolder *folder, QObject *parent ) :
+    QAbstractListModel( parent ),
+    d( new Private( treeModel, folder ) )
 {
     // nothing to do
 }
@@ -307,7 +310,7 @@ AlternativeRoutesModel::~AlternativeRoutesModel()
 
 int AlternativeRoutesModel::rowCount ( const QModelIndex & ) const
 {
-    return d->m_routes.size();
+    return d->m_folder->size();
 }
 
 QVariant AlternativeRoutesModel::headerData ( int, Qt::Orientation, int ) const
@@ -319,8 +322,8 @@ QVariant AlternativeRoutesModel::data ( const QModelIndex &index, int role ) con
 {
     QVariant result;
 
-    if ( role == Qt::DisplayRole && index.column() == 0 && index.row() >= 0 && index.row() < d->m_routes.size() ) {
-        result = d->m_routes.at( index.row() )->name();
+    if ( role == Qt::DisplayRole && index.column() == 0 && index.row() >= 0 && index.row() < d->m_folder->size() ) {
+        result = d->m_folder->child( index.row() )->name();
     }
 
     return result;
@@ -328,8 +331,8 @@ QVariant AlternativeRoutesModel::data ( const QModelIndex &index, int role ) con
 
 GeoDataDocument* AlternativeRoutesModel::route( int index )
 {
-    if ( index >= 0 && index < d->m_routes.size() ) {
-        return d->m_routes.at(index);
+    if ( index >= 0 && index < d->m_folder->size() ) {
+        return static_cast<GeoDataDocument *>( d->m_folder->child(index) );
     }
 
     return 0;
@@ -344,49 +347,56 @@ void AlternativeRoutesModel::newRequest( RouteRequest * )
 
 void AlternativeRoutesModel::addRestrainedRoutes()
 {
-    Q_ASSERT( d->m_routes.isEmpty() );
+    Q_ASSERT( d->m_folder->isEmpty() );
     qSort( d->m_restrainedRoutes.begin(), d->m_restrainedRoutes.end(), Private::higherScore );
 
+    d->m_treeModel->removeFeature( d->m_folder );
     foreach( GeoDataDocument* route, d->m_restrainedRoutes ) {
         if ( !d->filter( route ) ) {
-            int affected = d->m_routes.size();
+            int affected = d->m_folder->size();
             beginInsertRows( QModelIndex(), affected, affected );
-//            GeoDataDocument* base = d->m_routes.isEmpty() ? 0 : d->m_routes.first();
-            d->m_routes.push_back( route );
+//            GeoDataDocument* base = d->m_folder->isEmpty() ? 0 : d->m_folder->first();
+            d->m_folder->append( route );
             endInsertRows();
         }
     }
+    d->m_treeModel->addFeature( static_cast<GeoDataContainer *>( d->m_folder->parent() ), d->m_folder );
 
     d->m_restrainedRoutes.clear();
-    Q_ASSERT( !d->m_routes.isEmpty() );
+    Q_ASSERT( !d->m_folder->isEmpty() );
     setCurrentRoute( 0 );
 }
 
 void AlternativeRoutesModel::addRoute( GeoDataDocument* document, WritePolicy policy )
 {
     if ( policy == Instant ) {
-        int affected = d->m_routes.size();
+        int affected = d->m_folder->size();
         beginInsertRows( QModelIndex(), affected, affected );
-        d->m_routes.push_back( document );
+        d->m_treeModel->removeFeature( d->m_folder );
+        d->m_folder->append( document );
+        d->m_treeModel->addFeature( static_cast<GeoDataContainer *>( d->m_folder->parent() ), d->m_folder );
         endInsertRows();
         return;
     }
 
-    if ( d->m_routes.isEmpty() && d->m_restrainedRoutes.isEmpty() ) {
+    if ( d->m_folder->isEmpty() && d->m_restrainedRoutes.isEmpty() ) {
         // First
         int responseTime = d->m_responseTime.elapsed();
         d->m_restrainedRoutes.push_back( document );
         int timeout = qMin<int>( 500, qMax<int>( 50,  responseTime * 2 ) );
         QTimer::singleShot( timeout, this, SLOT(addRestrainedRoutes()) );
         return;
-    } else if ( d->m_routes.isEmpty() && !d->m_restrainedRoutes.isEmpty() ) {
+    } else if ( d->m_folder->isEmpty() && !d->m_restrainedRoutes.isEmpty() ) {
         d->m_restrainedRoutes.push_back( document );
     } else {
-        for ( int i=0; i<d->m_routes.size(); ++i ) {
-            qreal similarity = Private::similarity( document, d->m_routes.at( i ) );
+        for ( int i=0; i<d->m_folder->size(); ++i ) {
+            qreal similarity = Private::similarity( document, static_cast<const GeoDataDocument *>( d->m_folder->child( i ) ) );
             if ( similarity > 0.8 ) {
-                if ( Private::higherScore( document, d->m_routes.at( i ) ) ) {
-                    d->m_routes[i] = document;
+                if ( Private::higherScore( document, static_cast<const GeoDataDocument *>( d->m_folder->child( i ) ) ) ) {
+                    d->m_treeModel->removeFeature( d->m_folder );
+                    d->m_folder->remove( i );
+                    d->m_folder->insert( i, document );
+                    d->m_treeModel->addFeature( static_cast<GeoDataContainer *>( d->m_folder->parent() ), d->m_folder );
                     QModelIndex changed = index( i );
                     emit dataChanged( changed, changed );
                 }
@@ -395,10 +405,12 @@ void AlternativeRoutesModel::addRoute( GeoDataDocument* document, WritePolicy po
             }
         }
 
-        Q_ASSERT( !d->m_routes.isEmpty() );
-        int affected = d->m_routes.size();
+        Q_ASSERT( !d->m_folder->isEmpty() );
+        int affected = d->m_folder->size();
         beginInsertRows( QModelIndex(), affected, affected );
-        d->m_routes.push_back( document );
+        d->m_treeModel->removeFeature( d->m_folder );
+        d->m_folder->append( document );
+        d->m_treeModel->addFeature( static_cast<GeoDataContainer *>( d->m_folder->parent() ), d->m_folder );
         endInsertRows();
     }
 }
@@ -432,7 +444,7 @@ GeoDataDocument * AlternativeRoutesModel::currentRoute()
 {
     GeoDataDocument* result = 0;
     if ( d->m_currentIndex >= 0 && d->m_currentIndex < rowCount() ) {
-        result = d->m_routes[d->m_currentIndex];
+        result = static_cast<GeoDataDocument *>( d->m_folder->child( d->m_currentIndex ) );
     }
 
     return result;
@@ -441,10 +453,10 @@ GeoDataDocument * AlternativeRoutesModel::currentRoute()
 void AlternativeRoutesModel::clear()
 {
     beginResetModel();
-    QVector<GeoDataDocument*> routes = d->m_routes;
     d->m_currentIndex = -1;
-    d->m_routes.clear();
-    qDeleteAll(routes);
+    d->m_treeModel->removeFeature( d->m_folder );
+    d->m_folder->clear();
+    d->m_treeModel->addFeature( static_cast<GeoDataContainer *>( d->m_folder->parent() ), d->m_folder );
     endResetModel();
 }
 

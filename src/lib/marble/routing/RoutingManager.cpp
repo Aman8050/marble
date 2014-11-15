@@ -48,6 +48,7 @@ public:
     GeoDataDocument m_document;
 
     GeoDataFolder *const m_requestFolder;
+    GeoDataFolder *const m_routesFolder;
 
     RouteRequest m_routeRequest;
 
@@ -110,6 +111,7 @@ RoutingManagerPrivate::RoutingManagerPrivate( MarbleModel *model, RoutingManager
         q( manager ),
         m_document(),
         m_requestFolder( new GeoDataFolder ),
+        m_routesFolder( new GeoDataFolder ),
         m_routeRequest( model->treeModel(), m_requestFolder, manager ),
         m_routingModel( &m_routeRequest, model, manager ),
         m_profilesModel( model->pluginManager() ),
@@ -117,7 +119,7 @@ RoutingManagerPrivate::RoutingManagerPrivate( MarbleModel *model, RoutingManager
         m_pluginManager( model->pluginManager() ),
         m_treeModel( model->treeModel() ),
         m_positionTracking( model->positionTracking() ),
-        m_alternativeRoutesModel( parent ),
+        m_alternativeRoutesModel( m_treeModel, m_routesFolder, parent ),
         m_runnerManager( model, q ),
         m_haveRoute( false ),
         m_guidanceModeEnabled( false ),
@@ -128,9 +130,11 @@ RoutingManagerPrivate::RoutingManagerPrivate( MarbleModel *model, RoutingManager
         m_routeColorAlternative( Oxygen::aluminumGray4 )
 {
     m_requestFolder->setName( "Route Request" );
+    m_routesFolder->setName( "Routes" );
 
     m_document.setName( "Routing" );
     m_document.append( m_requestFolder );
+    m_document.append( m_routesFolder );
 
     m_routeColorStandard.setAlpha( 200 );
     m_routeColorHighlighted.setAlpha( 200 );
