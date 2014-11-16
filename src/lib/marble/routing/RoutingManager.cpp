@@ -20,8 +20,10 @@
 #include "GeoDataDocument.h"
 #include "GeoDataExtendedData.h"
 #include "GeoDataFolder.h"
+#include "GeoDataLineStyle.h"
 #include "GeoDataParser.h"
 #include "GeoDataPlacemark.h"
+#include "GeoDataStyle.h"
 #include "GeoDataTreeModel.h"
 #include "MarbleDirs.h"
 #include "MarbleDebug.h"
@@ -324,6 +326,22 @@ void RoutingManager::retrieveRoute()
 void RoutingManagerPrivate::addRoute( GeoDataDocument* route )
 {
     if ( route ) {
+        GeoDataLineStyle standardLineStyle;
+        standardLineStyle.setWidth( 5 );
+        standardLineStyle.setColor( m_routeColorStandard );
+        GeoDataStyle standardRouteStyle;
+        standardRouteStyle.setId( "standardRouteStyle" );
+        standardRouteStyle.setLineStyle( standardLineStyle );
+        route->addStyle( standardRouteStyle );
+
+        GeoDataLineStyle alternativeLineStyle;
+        alternativeLineStyle.setWidth( 5 );
+        alternativeLineStyle.setColor( m_routeColorAlternative );
+        GeoDataStyle alternativeRouteStyle;
+        alternativeRouteStyle.setId( "alternativeRouteStyle" );
+        alternativeRouteStyle.setLineStyle( alternativeLineStyle );
+        route->addStyle( alternativeRouteStyle );
+
         m_alternativeRoutesModel.addRoute( route );
     }
 

@@ -369,6 +369,16 @@ void AlternativeRoutesModel::addRestrainedRoutes()
 
 void AlternativeRoutesModel::addRoute( GeoDataDocument* document, WritePolicy policy )
 {
+    QVector<GeoDataFolder*> folders = document->folderList();
+    foreach( GeoDataFolder *folder, folders ) {
+        foreach( GeoDataPlacemark *placemark, folder->placemarkList() ) {
+            placemark->setStyleUrl( "alternativeRouteStyle" );
+        }
+    }
+    foreach( GeoDataPlacemark *placemark, document->placemarkList() ) {
+        placemark->setStyleUrl( "alternativeRouteStyle" );
+    }
+
     if ( policy == Instant ) {
         int affected = d->m_folder->size();
         beginInsertRows( QModelIndex(), affected, affected );
@@ -434,7 +444,37 @@ void AlternativeRoutesModel::setCurrentRoute( int index )
         return;
     }
 
+    const int featureIndex = d->m_treeModel->removeFeature( d->m_folder );
+
+    if ( 0 <= d->m_currentIndex && d->m_currentIndex < rowCount() ) {
+        GeoDataDocument *document = static_cast<GeoDataDocument *>( d->m_folder->child( d->m_currentIndex ) );
+        QVector<GeoDataFolder*> folders = document->folderList();
+        foreach( GeoDataFolder *folder, folders ) {
+            foreach( GeoDataPlacemark *placemark, folder->placemarkList() ) {
+                placemark->setStyleUrl( "alternativeRouteStyle" );
+            }
+        }
+        foreach( GeoDataPlacemark *placemark, document->placemarkList() ) {
+            placemark->setStyleUrl( "alternativeRouteStyle" );
+        }
+    }
+
     d->m_currentIndex = index;
+
+    GeoDataDocument *document = static_cast<GeoDataDocument *>( d->m_folder->child( d->m_currentIndex ) );
+    QVector<GeoDataFolder*> folders = document->folderList();
+    foreach( GeoDataFolder *folder, folders ) {
+        foreach( GeoDataPlacemark *placemark, folder->placemarkList() ) {
+            placemark->setStyleUrl( "standardRouteStyle" );
+        }
+    }
+    foreach( GeoDataPlacemark *placemark, document->placemarkList() ) {
+        placemark->setStyleUrl( "standardRouteStyle" );
+    }
+
+    if ( featureIndex != -1 ) {
+        d->m_treeModel->addFeature( static_cast<GeoDataContainer *>( d->m_folder->parent() ), d->m_folder );
+    }
 
     emit currentRouteChanged( currentRoute() );
     emit currentRouteChanged( d->m_currentIndex );
