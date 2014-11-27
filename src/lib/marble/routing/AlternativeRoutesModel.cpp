@@ -410,11 +410,22 @@ const GeoDataLineString* AlternativeRoutesModel::waypoints( const GeoDataDocumen
 
 void AlternativeRoutesModel::setCurrentRoute( int index )
 {
-    if ( index >= 0 && index < rowCount() && d->m_currentIndex != index ) {
-        d->m_currentIndex = index;
-        emit currentRouteChanged( currentRoute() );
-        emit currentRouteChanged( d->m_currentIndex );
+    if ( d->m_currentIndex == index ) {
+        return;
     }
+
+    if ( index < 0 ) {
+        return;
+    }
+
+    if ( index >= rowCount() ) {
+        return;
+    }
+
+    d->m_currentIndex = index;
+
+    emit currentRouteChanged( currentRoute() );
+    emit currentRouteChanged( d->m_currentIndex );
 }
 
 GeoDataDocument * AlternativeRoutesModel::currentRoute()
